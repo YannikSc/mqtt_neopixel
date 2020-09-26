@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+if [ -d 'settting.h' ] || [ -f 'settings.h' ]; then
+    echo "The settings.h file is already created";
+
+    exit 1;
+fi;
+
+echo "Please the name for your device:";
+read DEVICE_NAME;
+
+if [ -z "${DEVICE_NAME}" ]; then
+    echo "The device name is required!"
+
+    exit 1;
+fi;
+
+echo "Please enter the SSID for your WiFi:";
+read WIFI_SSID;
+
+if [ -z "${WIFI_SSID}" ]; then
+    echo "The SSID is required!"
+
+    exit 1;
+fi;
+
+echo "Please enter the password for your WiFi (leave blank for open WiFi - not recommended):";
+read WIFI_PASSWORD;
+
+echo "Please enter the IP for your MQTT broker:";
+read MQTT_BROKER_HOST;
+
+if [ -z "${MQTT_BROKER_HOST}" ]; then
+    echo "The MQTT broker host is required!"
+
+    exit 1;
+fi;
+
+echo "Please enter the Port for your MQTT broker (default: 1883):";
+read MQTT_BROKER_PORT;
+
+if [ -z "${MQTT_BROKER_PORT}" ]; then
+    MQTT_BROKER_PORT="1883 // MQTT default port"
+fi;
+
+echo "Please enter the username for your MQTT broker (optional):";
+read MQTT_BROKER_USERNAME;
+
+echo "Please enter the password for your MQTT broker (optional):";
+read MQTT_BROKER_PASSWORD;
+
+export DEVICE_NAME;
+export WIFI_SSID;
+export WIFI_PASSWORD;
+export MQTT_BROKER_HOST;
+export MQTT_BROKER_PORT;
+export MQTT_BROKER_USERNAME;
+export MQTT_BROKER_PASSWORD;
+
+VARIABLES+=' $DEVICE_NAME';
+VARIABLES+=' $WIFI_SSID';
+VARIABLES+=' $WIFI_PASSWORD';
+VARIABLES+=' $MQTT_BROKER_HOST';
+VARIABLES+=' $MQTT_BROKER_PORT';
+VARIABLES+=' $MQTT_BROKER_USERNAME';
+VARIABLES+=' $MQTT_BROKER_PASSWORD';
+
+if [ -d 'settting.h' ] || [ -f 'settings.h' ]; then
+    echo "The settings.h file is already created";
+
+    exit 1;
+fi;
+
+envsubst < settings.h.dist > settings.h;
