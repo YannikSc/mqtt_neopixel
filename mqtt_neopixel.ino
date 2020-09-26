@@ -1,4 +1,9 @@
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
+
 #include <EspMQTTClient.h>
 #include <ArduinoJson.h>
 #include <Vector.h>
