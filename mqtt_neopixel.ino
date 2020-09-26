@@ -103,6 +103,7 @@ void updateLeds() {
 void onConnectionEstablished() {
   Serial.println("Ready");
 
+  client.publish(DEVICE_NAME "/application", "mqtt_neopixel", true);
   client.subscribe(DEVICE_NAME "/colors", [](const String &payload) {
     DynamicJsonDocument doc(2048);
     deserializeJson(doc, payload);
