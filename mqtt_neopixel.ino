@@ -4,6 +4,8 @@
 #include <WiFi.h>
 #endif
 
+#define MQTT_MAX_PACKET_SIZE 2048
+
 #include <EspMQTTClient.h>
 #include <ArduinoJson.h>
 #include <Vector.h>
@@ -39,14 +41,13 @@
 #endif
 
 EspMQTTClient client(
-  WIFI_SSID,
-  WIFI_PASSWORD,
-  MQTT_BROKER_HOST,
-  MQTT_BROKER_USERNAME,
-  MQTT_BROKER_PASSWORD,
-  DEVICE_NAME,
-  MQTT_BROKER_PORT
-);
+    WIFI_SSID,
+    WIFI_PASSWORD,
+    MQTT_BROKER_HOST,
+    MQTT_BROKER_USERNAME,
+    MQTT_BROKER_PASSWORD,
+    DEVICE_NAME,
+    MQTT_BROKER_PORT);
 
 Adafruit_NeoPixel *pixels = NULL;
 byte pin = 255;
@@ -61,24 +62,28 @@ int lastUpdate = 0;
 uint32_t container[2048];
 Vector<uint32_t> ledValues(container);
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   Serial.print("Connecting as ");
   Serial.println(DEVICE_NAME);
 
-# ifdef DEBUG
+#ifdef DEBUG
   client.enableDebuggingMessages();
-# endif
+#endif
+
+  client.setMaxPacketSize(32768);
 }
 
 /**
  * Extracts the parts of the color and transforms them to the required NeoPixel format
  */
-void addColor(uint32_t color) {
+void addColor(uint32_t color)
+{
   //                          RRGGBBWW
-  uint32_t red   = (color & 0xFF000000) >> 24;
+  uint32_t red = (color & 0xFF000000) >> 24;
   uint32_t green = (color & 0x00FF0000) >> 16;
-  uint32_t blue  = (color & 0x0000FF00) >> 8;
+  uint32_t blue = (color & 0x0000FF00) >> 8;
   uint32_t white = (color & 0x000000FF);
 
   ledValues.push_back(Adafruit_NeoPixel::Color(red, green, blue, white));
@@ -87,15 +92,17 @@ void addColor(uint32_t color) {
 /**
  * Renders the colors to the strip
  */
-void updateLeds() {
+void updateLeds()
+{
   offset = offset % ledValues.size();
   pixels->clear();
 
-  for(int i = 0; i < ledCount; i++) {
+  for (int i = 0; i < ledCount; i++)
+  {
     uint32_t color = ledValues.at((i + offset) % ledValues.size());
     pixels->setPixelColor(i, color);
   }
-  
+
   pixels->show();
 
   offset += step;
@@ -105,46 +112,58 @@ void updateLeds() {
  * The callback for the MQTT library.
  * Sebscribes to the MQTT events.
  */
-void onConnectionEstablished() {
+void onConnectionEstablished()
+{
   Serial.println("Ready");
 
-  client.publish(DEVICE_NAME "/application", "mqtt_neopixel", true);
+  client.publish(DEVICE_NAME "/__application", "mqtt_neopixel", true);
+
+  client.subscribe(DEVICE_NAME "/pin", [](const String &payload) { pin = payload.toInt(); });
+  client.subscribe(DEVICE_NAME "/type", [](const String &payload) { type = payload.toInt(); });
+  client.subscribe(DEVICE_NAME "/count", [](const String &payload) { ledCount = payload.toInt(); });
+
+  client.subscribe(DEVICE_NAME "/delay", [](const String &payload) { delayMs = payload.toInt(); });
+  client.subscribe(DEVICE_NAME "/step", [](const String &payload) { step = payload.toInt(); });
+  client.subscribe(DEVICE_NAME "/offset", [](const String &payload) { offset = payload.toInt(); });
+  client.subscribe(DEVICE_NAME "/brightness", [](const String &payload) { brightness = payload.toInt(); });
+
   client.subscribe(DEVICE_NAME "/colors", [](const String &payload) {
-    DynamicJsonDocument doc(2048);
+    DynamicJsonDocument doc(4096);
     deserializeJson(doc, payload);
     ledValues.clear();
 
-    // Required parameters
-    pin = doc["pin"];
-    type = doc["type"];
-    ledCount = doc["count"];
-    JsonArray colors = doc["colors"];
+    JsonArray colors = doc.as<JsonArray>();
 
-    // Optional parameters
-    delayMs = doc["delay"] | 40;
-    step = doc["step"] | 1;
-    offset = doc["offset"] | 0;
-    brightness = doc["brightness"] | 255;
+    initializeStrip();
 
-    // Initialize the NeoPixel object
-    pixels = new Adafruit_NeoPixel(ledCount, pin, type + NEO_KHZ800);
-    pixels->begin();
-    pixels->setBrightness(brightness);
-
-    for (JsonVariant value : colors) {
+    for (JsonVariant value : colors)
+    {
       addColor(value);
     }
 
-    if (ledValues.size() == 0) {
+    if (ledValues.size() == 0)
+    {
       ledValues.push_back(0);
     }
   });
 }
 
-void loop() {
+void initializeStrip()
+{
+  if (ledCount && pin && type && brightness)
+  {
+    pixels = new Adafruit_NeoPixel(ledCount, pin, type + NEO_KHZ800);
+    pixels->begin();
+    pixels->setBrightness(brightness);
+  }
+}
+
+void loop()
+{
   client.loop();
 
-  if (pixels != NULL && lastUpdate > delayMs) {
+  if (pixels != NULL && lastUpdate > delayMs)
+  {
     lastUpdate = 0;
 
     updateLeds();
