@@ -108,6 +108,46 @@ void updateLeds()
   offset += step;
 }
 
+void updateBrightness(const String &payload)
+{
+  brightness = payload.toInt();
+
+  if (pixels != NULL)
+  {
+    pixels->setBrightness(brightness);
+  }
+}
+
+void updatePin(const String &payload)
+{
+  pin = payload.toInt();
+
+  if (pixels != NULL)
+  {
+    pixels->setPin(pin);
+  }
+}
+
+void updateCount(const String &payload)
+{
+  ledCount = payload.toInt();
+
+  if (pixels != NULL)
+  {
+    pixels->updateLength(ledCount);
+  }
+}
+
+void updateType(const String &payload)
+{
+  type = payload.toInt();
+
+  if (pixels != NULL)
+  {
+    pixels->updateType(type);
+  }
+}
+
 /**
  * The callback for the MQTT library.
  * Sebscribes to the MQTT events.
@@ -118,19 +158,20 @@ void onConnectionEstablished()
 
   client.publish(DEVICE_NAME "/__application", "mqtt_neopixel", true);
 
-  client.subscribe(DEVICE_NAME "/pin", [](const String &payload) { pin = payload.toInt(); });
-  client.subscribe(DEVICE_NAME "/type", [](const String &payload) { type = payload.toInt(); });
-  client.subscribe(DEVICE_NAME "/count", [](const String &payload) { ledCount = payload.toInt(); });
+  client.subscribe(DEVICE_NAME "/pin", updatePin);
+  client.subscribe(DEVICE_NAME "/type", updateType);
+  client.subscribe(DEVICE_NAME "/count", updateCount);
 
   client.subscribe(DEVICE_NAME "/delay", [](const String &payload) { delayMs = payload.toInt(); });
   client.subscribe(DEVICE_NAME "/step", [](const String &payload) { step = payload.toInt(); });
   client.subscribe(DEVICE_NAME "/offset", [](const String &payload) { offset = payload.toInt(); });
-  client.subscribe(DEVICE_NAME "/brightness", [](const String &payload) { brightness = payload.toInt(); });
+  client.subscribe(DEVICE_NAME "/brightness", updateBrightness);
 
   client.subscribe(DEVICE_NAME "/colors", [](const String &payload) {
-    DynamicJsonDocument doc(4096);
+    StaticJsonDocument<4096> doc;
     deserializeJson(doc, payload);
-    ledValues.clear();
+    memset(container, 0, sizeof(container));
+    ledValues = Vector<uint32_t>(container);
 
     JsonArray colors = doc.as<JsonArray>();
 
