@@ -1,5 +1,6 @@
 // #define DEBUG // Enable debug commands from EspMQTTClient library
 
+#define GAMMA_CORRECTION
 #define DEVICE_NAME "$DEVICE_NAME"
 #define WIFI_SSID "$WIFI_SSID"
 #define WIFI_PASSWORD "$WIFI_PASSWORD"

@@ -40,6 +40,14 @@
 #define MQTT_BROKER_PASSWORD "Secret"
 #endif
 
+#ifdef GAMMA_CORRECTION
+#define __GAMMA_CORRECTION_FUNCTION Adafruit_NeoPixel::gamma8
+#endif
+
+#ifndef __GAMMA_CORRECTION_FUNCTION
+#define __GAMMA_CORRECTION_FUNCTION
+#endif
+
 EspMQTTClient client(
     WIFI_SSID,
     WIFI_PASSWORD,
@@ -86,7 +94,11 @@ void addColor(uint32_t color)
   uint32_t blue = (color & 0x0000FF00) >> 8;
   uint32_t white = (color & 0x000000FF);
 
-  ledValues.push_back(Adafruit_NeoPixel::Color(red, green, blue, white));
+  ledValues.push_back(Adafruit_NeoPixel::Color(
+      __GAMMA_CORRECTION_FUNCTION(red),
+      __GAMMA_CORRECTION_FUNCTION(green),
+      __GAMMA_CORRECTION_FUNCTION(blue),
+      white));
 }
 
 /**
